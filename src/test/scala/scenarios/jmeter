@@ -1,0 +1,32 @@
+pipeline {
+    agent any
+    stages {
+        stage('Run JMeter Test') {
+            steps {
+                sh """
+rm -f resultjmeter.jtl
+rm -rf dashboard
+
+/Users/drake27/Desktop/apache-jmeter-5.6.3/bin/jmeter.sh \
+    -n \
+    -t /Users/drake27/Desktop/apache-jmeter-5.6.3/homework/qq.jmx \
+    -l resultjmeter.jtl \
+    -e \
+    -o "${WORKSPACE}/dashboard"
+"""
+            }
+        }
+    }
+    post {
+        always {
+            publishHTML(target: [
+                allowMissing: false,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'dashboard',
+                reportFiles: 'index.html',
+                reportName: 'JMeter Report'
+            ])
+        }
+    }
+}
