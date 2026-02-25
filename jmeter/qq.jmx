@@ -94,9 +94,9 @@
         </hashTree>
       </hashTree>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Users">
-        <intProp name="ThreadGroup.num_threads">5</intProp>
-        <intProp name="ThreadGroup.ramp_time">60</intProp>
-        <longProp name="ThreadGroup.duration">600</longProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(THREADS,5)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(RAMP_UP,60)}</stringProp>
+        <stringProp name="ThreadGroup.duration">${__P(DURATION,600)}</stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
