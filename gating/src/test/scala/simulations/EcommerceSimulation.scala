@@ -9,7 +9,8 @@ import scala.concurrent.duration._
 class EcommerceSimulation extends Simulation {
   setUp(
     UserScenarios.scn.inject(
-      rampUsers(userCount).during(rampDuration.seconds)
+      rampConcurrentUsers(1).to(userCount).during(rampDuration.seconds),  
+      constantConcurrentUsers(userCount).during(testDuration.seconds) 
     )
   ).protocols(httpProtocol)
 }
