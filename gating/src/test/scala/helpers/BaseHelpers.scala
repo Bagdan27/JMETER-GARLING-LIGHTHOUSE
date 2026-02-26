@@ -4,9 +4,10 @@ import io.gatling.core.Predef._
 import io.gatling.http.Predef._
 
 object BaseHelpers {
-  val appUrl = System.getProperty("baseUrl", "http://localhost")
-  val userCount = Integer.getInteger("users", 5)
-  val rampDuration = Integer.getInteger("ramp", 600)
+  val appUrl        = System.getProperty("baseUrl", "http://localhost")
+  val userCount     = Integer.getInteger("users", 5).toInt
+  val rampDuration  = Integer.getInteger("ramp", 60).toInt
+  val testDuration  = Integer.getInteger("duration", 300).toInt 
 
   val commonHeaders = Map(
     "Accept" -> "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
