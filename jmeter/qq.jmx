@@ -94,9 +94,9 @@
         </hashTree>
       </hashTree>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Users">
-        <stringProp name="ThreadGroup.num_threads">${__P(THREADS,5)}</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">${__P(RAMP_UP,60)}</stringProp>
-        <stringProp name="ThreadGroup.duration">${__P(DURATION,600)}</stringProp>
+        <intProp name="ThreadGroup.num_threads">5</intProp>
+        <intProp name="ThreadGroup.ramp_time">60</intProp>
+        <longProp name="ThreadGroup.duration">600</longProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
@@ -160,7 +160,7 @@
           <collectionProp name="Arguments.arguments">
             <elementProp name="BASE_URL" elementType="Argument">
               <stringProp name="Argument.name">BASE_URL</stringProp>
-              <stringProp name="Argument.value">${__P(APP_URL,localhost)}</stringProp>
+              <stringProp name="Argument.value">localhost</stringProp>
               <stringProp name="Argument.metadata">=</stringProp>
             </elementProp>
           </collectionProp>
@@ -883,7 +883,7 @@
         <stringProp name="filename"></stringProp>
       </ResultCollector>
       <hashTree/>
-      <BackendListener guiclass="BackendListenerGui" testclass="BackendListener" testname="Backend Listener" enabled="false">
+      <BackendListener guiclass="BackendListenerGui" testclass="BackendListener" testname="Backend Listener">
         <elementProp name="arguments" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments">
           <collectionProp name="Arguments.arguments">
             <elementProp name="influxdbMetricsSender" elementType="Argument">
@@ -908,7 +908,7 @@
             </elementProp>
             <elementProp name="summaryOnly" elementType="Argument">
               <stringProp name="Argument.name">summaryOnly</stringProp>
-              <stringProp name="Argument.value">true</stringProp>
+              <stringProp name="Argument.value">false</stringProp>
               <stringProp name="Argument.metadata">=</stringProp>
             </elementProp>
             <elementProp name="samplersRegex" elementType="Argument">
@@ -923,7 +923,7 @@
             </elementProp>
             <elementProp name="testTitle" elementType="Argument">
               <stringProp name="Argument.name">testTitle</stringProp>
-              <stringProp name="Argument.value">Test name</stringProp>
+              <stringProp name="Argument.value">Load test</stringProp>
               <stringProp name="Argument.metadata">=</stringProp>
             </elementProp>
             <elementProp name="eventTags" elementType="Argument">
