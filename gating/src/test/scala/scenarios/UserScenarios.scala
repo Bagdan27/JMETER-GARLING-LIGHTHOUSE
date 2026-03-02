@@ -7,7 +7,6 @@ import helpers.BaseHelpers._
 
 object UserScenarios {
 
-
   val updateCartSession = (session: Session) => {
     val currentCart = session("cart_content").as[String]
     val pid = session("global_productId").as[String]
@@ -21,8 +20,6 @@ object UserScenarios {
       currentCart.dropRight(1) + "," + newItemEntry + "}"
     }
 
-    println(s"DEBUG: Cart updated. Was: '$currentCart', Added: $pid (x$qty), Becames: '$newCartContent'")
-
     session.set("cart_content", newCartContent)
   }
 
@@ -33,7 +30,7 @@ object UserScenarios {
     )
     .exec(thinkTime())
     .exec(session => {
-        session.set("current_quantity", (1 + Random.nextInt(3)).toString)
+      session.set("current_quantity", (1 + Random.nextInt(3)).toString)
     })
     .exec(http(s"Add $productType to Cart")
       .post("/wp-admin/admin-ajax.php")
@@ -92,17 +89,16 @@ object UserScenarios {
             .get("/cart")
             .check(css("input[name='trans_id']", "value").saveAs("trans_id"))
             .check(css("input[name='total_net']", "value").saveAs("total_net"))
-
             .check(css("option", "value").findRandom.optional.saveAs("country_code"))
           )
           .exec(thinkTime())
 
           .exec(http("Proceed to Checkout")
-             .post("/checkout")
-             .formParam("cart_content", "${cart_content}")
-             .formParam("total_net", "${total_net}")
-             .formParam("trans_id", "${trans_id}")
-             .formParam("shipping", "order")
+            .post("/checkout")
+            .formParam("cart_content", "${cart_content}")
+            .formParam("total_net", "${total_net}")
+            .formParam("trans_id", "${trans_id}")
+            .formParam("shipping", "order")
           )
           .exec(thinkTime())
 
