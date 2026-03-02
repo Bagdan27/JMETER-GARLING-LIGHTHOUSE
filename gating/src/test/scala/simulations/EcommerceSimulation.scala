@@ -13,7 +13,7 @@ class EcommerceSimulation extends Simulation {
       rampUsers(userCount).during(rampDuration.seconds),
 
       // 2. Держим нагрузку стабильной — тут и ищем точку насыщения
-      constantUsersPerSec(userCount.toDouble / rampDuration.toDouble * userCount)
+      constantUsersPerSec(userCount.toDouble / rampDuration.toDouble)
         .during(testDuration.seconds)
     )
   )
