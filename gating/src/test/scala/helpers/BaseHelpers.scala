@@ -5,9 +5,9 @@ import io.gatling.http.Predef._
 
 object BaseHelpers {
   val appUrl        = System.getProperty("baseUrl",  "http://localhost")
-  val userCount     = Integer.getInteger("users",    5)
-  val rampDuration  = Integer.getInteger("ramp",     30)
-  val testDuration  = Integer.getInteger("duration", 300)
+  val userCount     = Integer.getInteger("users",    5).toInt
+  val rampDuration  = Integer.getInteger("ramp",     30).toInt
+  val testDuration  = Integer.getInteger("duration", 300).toInt
   val totalDuration = rampDuration + testDuration
 
   val httpProtocol = http
@@ -18,4 +18,4 @@ object BaseHelpers {
     .userAgentHeader("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
   def thinkTime(min: Int = 2, max: Int = 5) = pause(min, max)
-}  // ← закрывающая скобка объекта была в середине
+}
