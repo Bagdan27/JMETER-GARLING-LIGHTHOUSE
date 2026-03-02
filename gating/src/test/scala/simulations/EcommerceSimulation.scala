@@ -9,18 +9,16 @@ class EcommerceSimulation extends Simulation {
 
   setUp(
     UserScenarios.scn.inject(
-      // 1. Плавный разогрев — ramp до нужного кол-ва юзеров
-      rampUsers(userCount).during(rampDuration.seconds),
+      // 1. Разгоняем нагрузку от 0 до 50 ОДНОВРЕМЕННЫХ пользователей за 120 сек
+      rampConcurrentUsers(0).to(userCount).during(rampDuration.seconds),
 
-      // 2. Держим нагрузку стабильной — тут и ищем точку насыщения
-      constantUsersPerSec(userCount.toDouble / rampDuration.toDouble)
-        .during(testDuration.seconds)
+      // 2. Удерживаем ровно 50 ОДНОВРЕМЕННЫХ пользователей в течение 180 сек
+      constantConcurrentUsers(userCount).during(testDuration.seconds)
     )
   )
   .protocols(httpProtocol)
   .assertions(
-    // Тест считается провальным если:
-    global.responseTime.percentile(95).lt(5000),   // p95 < 5 сек
-    global.successfulRequests.percent.gt(95)        // > 95% успешных запросов
+    global.responseTime.percentile(95).lt(5000),
+    global.successfulRequests.percent.gt(95)
   )
 }
