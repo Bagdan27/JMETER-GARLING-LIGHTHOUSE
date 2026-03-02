@@ -4,10 +4,10 @@ import io.gatling.core.Predef._
 import io.gatling.http.Predef._
 
 object BaseHelpers {
-  val appUrl        = System.getProperty("baseUrl",  "http://localhost")
-  val userCount     = Integer.getInteger("users",    5).toInt
-  val rampDuration  = Integer.getInteger("ramp",     30).toInt
-  val testDuration  = Integer.getInteger("duration", 300).toInt
+  val appUrl       = System.getProperty("baseUrl",  "http://localhost")
+  val userCount    = Integer.getInteger("users",    5).toInt
+  val rampDuration = Integer.getInteger("ramp",     30).toInt
+  val testDuration = Integer.getInteger("duration", 300).toInt
   val totalDuration = rampDuration + testDuration
 
   val httpProtocol = http
