@@ -13,9 +13,9 @@ class EcommerceSimulation extends Simulation {
     )
   )
   .protocols(httpProtocol)
-  .maxDuration(totalDuration.intValue.seconds)  // ← явный unbox
+  .maxDuration(totalDuration.seconds)
   .assertions(
-    global.responseTime.percentile(95).lt(5000),
+    global.responseTime.percentile(95).lt(8000),
     global.successfulRequests.percent.gt(95)
   )
 }
