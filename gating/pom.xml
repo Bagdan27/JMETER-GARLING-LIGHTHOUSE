@@ -16,6 +16,10 @@
         <scala-maven-plugin.version>4.8.1</scala-maven-plugin.version>
         <scala.version>2.13.12</scala.version>
 
+        <!-- ======================================================= -->
+        <!-- Дефолтные значения — переопределяются из Jenkins через   -->
+        <!-- -DbaseUrl=... -Dusers=... -Dramp=... -Dduration=...      -->
+        <!-- ======================================================= -->
         <baseUrl>http://localhost</baseUrl>
         <users>5</users>
         <ramp>30</ramp>
@@ -64,15 +68,15 @@
                 <version>${gatling-maven-plugin.version}</version>
                 <configuration>
                     <simulationClass>simulations.EcommerceSimulation</simulationClass>
-                    
+                    <!-- propagateSystemProperties: пробрасывает ВСЕ -D из mvn в форкнутый процесс Gatling -->
+                    <propagateSystemProperties>true</propagateSystemProperties>
+                    <!-- jvmArgs: явно дублируем на случай если propagate не сработает -->
                     <jvmArgs>
                         <jvmArg>-DbaseUrl=${baseUrl}</jvmArg>
                         <jvmArg>-Dusers=${users}</jvmArg>
                         <jvmArg>-Dramp=${ramp}</jvmArg>
                         <jvmArg>-Dduration=${duration}</jvmArg>
                     </jvmArgs>
-                    
-                    <propagateSystemProperties>true</propagateSystemProperties>
                 </configuration>
             </plugin>
 
