@@ -18,7 +18,6 @@
         <hashTree>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="03_02_Open_Random_Product" enabled="true">
             <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
-            <!-- FIX: global_link теперь содержит чистый slug без мусора -->
             <stringProp name="HTTPSampler.path">/products/${global_link}</stringProp>
             <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
@@ -110,7 +109,6 @@
         <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults" enabled="true">
           <boolProp name="HTTPSampler.image_parser">true</boolProp>
           <boolProp name="HTTPSampler.concurrentDwn">true</boolProp>
-          <!-- FIX: снижено с 6 до 2 — меньше параллельных соединений, сервер не перегружается -->
           <intProp name="HTTPSampler.concurrentPool">2</intProp>
           <stringProp name="HTTPSampler.domain">${__P(APP_URL,localhost)}</stringProp>
           <stringProp name="HTTPSampler.port">80</stringProp>
@@ -226,11 +224,11 @@
             </elementProp>
           </HTTPSamplerProxy>
           <hashTree>
-            <!-- FIX: исправлен жадный regex (.*)  →  ([^"]+) — теперь захватывает только slug без мусора -->
+            <!-- FIX v3: убран "><" из конца regex — в реальном HTML его нет, только href="...slug..." -->
             <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Regular Expression Extractor" enabled="true">
               <stringProp name="RegexExtractor.useHeaders">false</stringProp>
               <stringProp name="RegexExtractor.refname">global_link</stringProp>
-              <stringProp name="RegexExtractor.regex">&lt;a href=&quot;http:\/\/localhost\/products\/([^&quot;]+)&quot;&gt;&lt;</stringProp>
+              <stringProp name="RegexExtractor.regex">href=&quot;http:\/\/localhost\/products\/([^&quot;]+)&quot;</stringProp>
               <stringProp name="RegexExtractor.template">$1$</stringProp>
               <stringProp name="RegexExtractor.default">NOT_FOUND</stringProp>
               <boolProp name="RegexExtractor.default_empty_value">false</boolProp>
@@ -288,11 +286,11 @@
               </elementProp>
             </HTTPSamplerProxy>
             <hashTree>
-              <!-- FIX: исправлен жадный regex (.*)  →  ([^"]+) — теперь захватывает только slug без мусора -->
+              <!-- FIX v3: убран "><" из конца regex — в реальном HTML его нет, только href="...slug..." -->
               <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="global link" enabled="true">
                 <stringProp name="RegexExtractor.useHeaders">false</stringProp>
                 <stringProp name="RegexExtractor.refname">global_link</stringProp>
-                <stringProp name="RegexExtractor.regex">&lt;a href=&quot;http:\/\/localhost\/products\/([^&quot;]+)&quot;&gt;&lt;</stringProp>
+                <stringProp name="RegexExtractor.regex">href=&quot;http:\/\/localhost\/products\/([^&quot;]+)&quot;</stringProp>
                 <stringProp name="RegexExtractor.template">$1$</stringProp>
                 <stringProp name="RegexExtractor.default">NOT_FOUND</stringProp>
                 <boolProp name="RegexExtractor.default_empty_value">false</boolProp>
@@ -460,7 +458,6 @@
                     <boolProp name="HTTPArgument.use_equals">true</boolProp>
                     <stringProp name="Argument.name">trans_id</stringProp>
                   </elementProp>
-                  <!-- FIX: исправлена опечатка odrer → order -->
                   <elementProp name="shipping" elementType="HTTPArgument">
                     <boolProp name="HTTPArgument.always_encode">false</boolProp>
                     <stringProp name="Argument.value">order</stringProp>
@@ -543,7 +540,6 @@
                     <boolProp name="HTTPArgument.use_equals">true</boolProp>
                     <stringProp name="Argument.name">cart_content</stringProp>
                   </elementProp>
-                  <!-- FIX: заменены захардкоженные ID 117/121 на динамические переменные из RegexExtractor -->
                   <elementProp name="product_price_id_1" elementType="HTTPArgument">
                     <boolProp name="HTTPArgument.always_encode">false</boolProp>
                     <stringProp name="Argument.value">${product_price_1_g1}</stringProp>
