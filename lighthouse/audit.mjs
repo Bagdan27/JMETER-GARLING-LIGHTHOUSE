@@ -2,333 +2,251 @@ import puppeteer from 'puppeteer';
 import { startFlow } from 'lighthouse';
 import fs from 'fs';
 
-const APP_URL = 'http://localhost'; 
+// ─────────────────────────────────────────────
+//  CONFIG
+// ─────────────────────────────────────────────
+const APP_URL = 'http://localhost';
 const VIEWPORT = { width: 1280, height: 800 };
 
-
-const SELECTORS = {
-  product: {
-    title: 'h1',
-    addToCartButton: 'button.green-box.ic-design',
-    productIdInput: 'input[name="current_product"]',
-    cartAddedInfo: '.cart-added-info',
-    viewCartLink: '.cart-added-info a, a[href*="/cart"]'
+const LIGHTHOUSE_CONFIG = {
+  settingsOverrides: {
+    throttlingMethod: 'devtools',
+    screenEmulation: {
+      mobile: false,
+      width: 1280,
+      height: 800,
+      deviceScaleFactor: 1,
+      disabled: false,
+    },
+    formFactor: 'desktop',
   },
-  
-  cart: {
-    checkoutButton: 'input.to_cart_submit, input[type="submit"][name="cart_submit"]',
-    cartItems: '.cart-item, .product-item'
-  },
-  
-  checkout: {
-    nameField: '[name="cart_name"]',
-    addressField: '[name="cart_address"]',
-    postalField: '[name="cart_postal"]',
-    cityField: '[name="cart_city"]',
-    stateField: '[name="cart_state"]',
-    phoneField: '[name="cart_phone"]',
-    emailField: '[name="cart_email"]',
-    countrySelect: '[name="cart_country"]',
-    submitButton: '[name="cart_submit"]'
-  }
 };
 
+// ─────────────────────────────────────────────
+//  SELECTORS
+// ─────────────────────────────────────────────
+const SEL = {
+  product: {
+    addToCartBtn:  'button.green-box.ic-design',
+    cartAddedInfo: '.cart-added-info',
+    cartLink:      '.cart-added-info a, a[href*="/cart"]',
+  },
+  cart: {
+    checkoutBtn: 'input.to_cart_submit, input[type="submit"][name="cart_submit"]',
+  },
+  checkout: {
+    name:    '[name="cart_name"]',
+    address: '[name="cart_address"]',
+    postal:  '[name="cart_postal"]',
+    city:    '[name="cart_city"]',
+    state:   '[name="cart_state"]',
+    phone:   '[name="cart_phone"]',
+    email:   '[name="cart_email"]',
+    country: '[name="cart_country"]',
+    submit:  '[name="cart_submit"]',
+  },
+};
+
+// ─────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────
+const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function safeClick(page, selector) {
+  await page.waitForSelector(selector, { timeout: 10_000 });
+  await page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    el?.scrollIntoView({ block: 'center' });
+    el?.click();
+  }, selector);
+}
+
+async function screenshot(page, name) {
+  await page.screenshot({ path: `debug-${name}.png` });
+  console.log(`  📸 saved debug-${name}.png`);
+}
+
+// ─────────────────────────────────────────────
+//  PICK A RANDOM PRODUCT FROM A CATEGORY PAGE
+// ─────────────────────────────────────────────
+async function pickRandomProductUrl(page, categoryPath) {
+  await page.goto(`${APP_URL}${categoryPath}`, { waitUntil: 'domcontentloaded' });
+  await delay(1_000);
+
+  const links = await page.$$eval(
+    'a[href*="/products/"]',
+    (els) => els.map((el) => el.href),
+  );
+
+  if (!links.length) throw new Error(`No product links found on ${categoryPath}`);
+
+  return links[Math.floor(Math.random() * links.length)];
+}
+
+// ─────────────────────────────────────────────
+//  MAIN
+// ─────────────────────────────────────────────
 async function runAudit() {
   const browser = await puppeteer.launch({
     headless: false,
     defaultViewport: VIEWPORT,
-    args: ['--disable-blink-features=AutomationControlled']
+    args: ['--disable-blink-features=AutomationControlled'],
   });
-  
+
   const page = await browser.newPage();
-  
-  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+  await page.setUserAgent(
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+    '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  );
 
   const flow = await startFlow(page, {
     name: 'E-commerce Order Flow',
-    configContext: {
-      settingsOverrides: {
-        throttlingMethod: 'devtools', 
-        screenEmulation: { mobile: false, width: 1280, height: 800, deviceScaleFactor: 1, disabled: false },
-        formFactor: 'desktop',
-      },
-    },
+    configContext: LIGHTHOUSE_CONFIG,
   });
 
-  console.log('Start\n');
-  console.log('Opening application homepage...');
-  await flow.navigate(APP_URL, {
-    stepName: '1. Initial page load'
-  });
-  console.log('Homepage loaded\n');
+  // ── STEP 1 ── Homepage (full navigation → LCP, CLS, TBT, FCP, SI)
+  console.log('\n▶ Step 1 — Homepage');
+  await flow.navigate(APP_URL, { stepName: '1. Homepage' });
+  console.log('  ✓ done\n');
 
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await delay(1_000);
 
+  // ── STEP 2 ── Tables category page (full navigation → complete metrics)
+  console.log('▶ Step 2 — Tables category page');
+  const productUrl = await pickRandomProductUrl(page, '/tables');
+  await flow.navigate(`${APP_URL}/tables`, { stepName: '2. Tables category page' });
+  console.log('  ✓ done\n');
 
-  console.log(' Navigating to Tables category');
-  await flow.startTimespan({ stepName: '2. Navigate to Tables category and select product' });
-  
+  await delay(800);
+
+  // ── STEP 3 ── Product detail page (full navigation → complete metrics)
+  console.log(`▶ Step 3 — Product page: ${productUrl}`);
+  await flow.navigate(productUrl, { stepName: '3. Product detail page' });
+  console.log('  ✓ done\n');
+
+  await delay(800);
+
+  // ── STEP 4 ── Add to cart (timespan — pure interaction, no page load)
+  //             CLS is measured here during the UI state change
+  console.log('▶ Step 4 — Add product to cart');
+  await flow.startTimespan({ stepName: '4. Add to cart interaction' });
   try {
-    console.log('Opening /tables page...');
-    await page.goto(`${APP_URL}/tables`, { waitUntil: 'domcontentloaded' });
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    await page.waitForSelector('body', { timeout: 5000 });
-    
-    let productLinks = await page.$$('a[href*="/products/"]');
-    
-    if (productLinks.length > 0) {
-      const randomIndex = Math.floor(Math.random() * productLinks.length);
-      console.log(`Found ${productLinks.length} table product links. Selecting #${randomIndex + 1}`);
-      
-      const productUrl = await page.evaluate(el => el.href, productLinks[randomIndex]);
-      console.log(`Navigating to table product: ${productUrl}`);
-      
-      await page.goto(productUrl, { waitUntil: 'domcontentloaded' });
-      
-    } else {
-      console.log('No product links found, trying to find product images on tables page...');
-      const productImages = await page.$$('.product-list img, .products img');
-      
-      if (productImages.length > 0) {
-        const randomIndex = Math.floor(Math.random() * productImages.length);
-        console.log(`Found ${productImages.length} table product images. Clicking #${randomIndex + 1}`);
-        
-        await productImages[randomIndex].scrollIntoView();
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        await page.evaluate(el => el.click(), productImages[randomIndex]);
-        await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 });
-      } else {
-        throw new Error('No table products found on the /tables page');
-      }
-    }
-    
+    await safeClick(page, SEL.product.addToCartBtn);
+    console.log('  clicked "Add to Cart"');
+
     await page.waitForFunction(
-      () => document.querySelector('h1') !== null || 
-            document.querySelector('button.green-box') !== null,
-      { timeout: 10000 }
+      () =>
+        document.body.innerText.includes('Added') ||
+        document.body.innerText.includes('added') ||
+        !!document.querySelector('.cart-added-info') ||
+        !!document.querySelector('a[href*="/cart"]'),
+      { timeout: 10_000 },
     );
-    
-    const productTitle = await page.$eval('h1', el => el.textContent).catch(() => 'Table Product');
-    console.log(`Table product page loaded: "${productTitle}"`);
-    
-  } catch (error) {
-    console.error(' Error navigating to product:', error.message);
-    console.log('Current URL:', page.url());
-    
-    await page.screenshot({ path: 'debug-screenshot.png' });
-    console.log('Debug screenshot saved as debug-screenshot.png');
-    
-    throw error;
+
+    console.log('  ✓ item in cart');
+    await delay(1_200);
+  } catch (err) {
+    await screenshot(page, 'add-to-cart');
+    throw err;
   } finally {
+    await flow.endTimespan();
+    console.log('  timespan ended\n');
+  }
+
+  // ── STEP 5 ── Cart page (full navigation → complete metrics)
+  console.log('▶ Step 5 — Cart page');
+  try {
+    const cartUrl = await page
+      .$eval(SEL.product.cartLink, (el) => el.href)
+      .catch(() => `${APP_URL}/cart/`);
+
+    await flow.navigate(cartUrl, { stepName: '5. Cart page' });
+    console.log('  ✓ done\n');
+  } catch (err) {
+    await screenshot(page, 'cart');
+    throw err;
+  }
+
+  await delay(800);
+
+  // ── STEP 6 ── Checkout page (full navigation → complete metrics)
+  console.log('▶ Step 6 — Checkout page');
+  try {
+    await safeClick(page, SEL.cart.checkoutBtn);
+    await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10_000 });
+    await page.waitForSelector(SEL.checkout.name, { timeout: 10_000 });
+
+    // Snapshot after navigation so Lighthouse captures the loaded checkout page
+    await flow.snapshot({ stepName: '6. Checkout page loaded' });
+    console.log('  ✓ done\n');
+  } catch (err) {
+    await screenshot(page, 'checkout');
+    throw err;
+  }
+
+  // ── STEP 7 ── Fill & submit form (timespan — interaction + CLS on form)
+  console.log('▶ Step 7 — Fill checkout form & submit order');
+  await flow.startTimespan({ stepName: '7. Form fill & order submission' });
+  try {
+    await page.evaluate((s) => {
+      document.querySelector(s.name).value    = 'Test User';
+      document.querySelector(s.address).value = 'Test Street 123';
+      document.querySelector(s.postal).value  = '12345';
+      document.querySelector(s.city).value    = 'Madrid';
+      document.querySelector(s.state).value   = 'Madrid';
+      document.querySelector(s.phone).value   = '999999999';
+      document.querySelector(s.email).value   = 'test@test.com';
+    }, SEL.checkout);
+
     try {
-      await flow.endTimespan();
-      console.log('Timespan ended for product navigation\n');
-    } catch (timespanError) {
-      if (timespanError.message && timespanError.message.includes('NO_LCP')) {
-        console.log('⚠ Timespan ended with LCP warning (non-critical)\n');
-      } else {
-        console.log('Timespan ended\n');
-      }
+      await page.select(SEL.checkout.country, 'US');
+    } catch {
+      console.log('  ⚠ country select skipped');
     }
-  }
 
-  
-  console.log(' Adding product to cart...');
-  await flow.startTimespan({ stepName: '3. Add product to cart' });
-  
-  try {
-    await page.waitForSelector(SELECTORS.product.addToCartButton, { timeout: 10000 });
-    
-    await page.evaluate((selector) => {
-      const button = document.querySelector(selector);
-      if (button) button.scrollIntoView({ block: 'center' });
-    }, SELECTORS.product.addToCartButton);
-    
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    await page.evaluate((selector) => {
-      const button = document.querySelector(selector);
-      if (button) button.click();
-    }, SELECTORS.product.addToCartButton);
-    
-    console.log('Clicked "Add to Cart" button');
-    
+    console.log('  all fields filled');
+    await delay(1_500);
+
+    await safeClick(page, SEL.checkout.submit);
+
     await page.waitForFunction(
-      () => {
-        const bodyText = document.body.innerText;
-        return bodyText.includes('Added') || 
-               bodyText.includes('added') ||
-               document.querySelector('.cart-added-info') !== null ||
-               document.querySelector('a[href*="/cart"]') !== null;
-      },
-      { timeout: 10000 }
+      () =>
+        ['Thank You', 'thank you', 'Thank you'].some((t) =>
+          document.body.innerText.includes(t),
+        ) ||
+        !!document.querySelector('.success, .order-complete'),
+      { timeout: 15_000 },
     );
-    
-    console.log('Product added to cart successfully');
-    
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-  } catch (error) {
-    console.error(' Error adding to cart:', error.message);
-    await page.screenshot({ path: 'debug-add-to-cart.png' });
-    console.log('Debug screenshot saved as debug-add-to-cart.png');
-    throw error;
+
+    console.log('  ✓ order submitted');
+    await delay(1_000);
+  } catch (err) {
+    await screenshot(page, 'submit');
+    throw err;
   } finally {
     await flow.endTimespan();
-    console.log('Timespan ended for adding to cart\n');
+    console.log('  timespan ended\n');
   }
 
-  
-  console.log('Opening cart page...');
-  await flow.startTimespan({ stepName: '4. Navigate to cart' });
-  
-  try {
-    const cartLinkExists = await page.$(SELECTORS.product.viewCartLink) !== null;
-    
-    if (cartLinkExists) {
-      const cartUrl = await page.$eval(SELECTORS.product.viewCartLink, el => el.href);
-      console.log(`Navigating to cart: ${cartUrl}`);
-      await page.goto(cartUrl, { waitUntil: 'domcontentloaded' });
-    } else {
-      console.log('Cart link not found, navigating directly to /cart/');
-      await page.goto(`${APP_URL}/cart/`, { waitUntil: 'domcontentloaded' });
-    }
-    
-    
-    await page.waitForFunction(
-      () => document.querySelector('input.to_cart_submit') !== null ||
-            document.querySelector('[name="cart_submit"]') !== null ||
-            document.body.innerText.toLowerCase().includes('cart'),
-      { timeout: 10000 }
-    );
-    
-    console.log('Cart page loaded');
-    
-  } catch (error) {
-    console.error('Error opening cart:', error.message);
-    await page.screenshot({ path: 'debug-cart.png' });
-    throw error;
-  } finally {
-    await flow.endTimespan();
-    console.log('Timespan ended for cart navigation\n');
-  }
+  // ── STEP 8 ── Thank-you / confirmation page (full navigation snapshot)
+  //             Captures final page state with complete metric set
+  console.log('▶ Step 8 — Order confirmation page');
+  await flow.snapshot({ stepName: '8. Order confirmation page' });
+  console.log('  ✓ snapshot done\n');
 
-
-  console.log('Proceeding to checkout...');
-  await flow.startTimespan({ stepName: '5. Proceed to checkout' });
-  
-  try {
-    const checkoutButtonExists = await page.$(SELECTORS.cart.checkoutButton) !== null;
-    
-    if (checkoutButtonExists) {
-      await page.evaluate((selector) => {
-        const button = document.querySelector(selector);
-        if (button) {
-          button.scrollIntoView({ block: 'center' });
-          button.click();
-        }
-      }, SELECTORS.cart.checkoutButton);
-      
-      await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 });
-    } else {
-      console.log('Checkout button not found, trying form submit...');
-      await page.evaluate(() => {
-        const form = document.querySelector('form');
-        if (form) form.submit();
-      });
-      await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 });
-    }
-    
-    
-    await page.waitForSelector(SELECTORS.checkout.nameField, { timeout: 10000 });
-    console.log(' Checkout page loaded');
-    
-  } catch (error) {
-    console.error(' Error proceeding to checkout:', error.message);
-    await page.screenshot({ path: 'debug-checkout.png' });
-    throw error;
-  } finally {
-    await flow.endTimespan();
-    console.log('Timespan ended for checkout navigation\n');
-  }
-
-  console.log(' Filling checkout form and placing order...');
-  await flow.startTimespan({ stepName: '6. Fill form and submit order' });
-  
-  try {
-    await page.evaluate((selectors) => {
-      document.querySelector(selectors.nameField).value = 'Test User';
-      document.querySelector(selectors.addressField).value = 'Test Street 123';
-      document.querySelector(selectors.postalField).value = '12345';
-      document.querySelector(selectors.cityField).value = 'Madrid';
-      document.querySelector(selectors.stateField).value = 'Madrid';
-      document.querySelector(selectors.phoneField).value = '999999999';
-      document.querySelector(selectors.emailField).value = 'test@test.com';
-    }, SELECTORS.checkout);
-    
-    
-    try {
-      await page.select(SELECTORS.checkout.countrySelect, 'US');
-      console.log(' Country selected');
-    } catch (e) {
-      console.log('⚠ Country selection skipped');
-    }
-    
-    console.log('All form fields filled');
-    
-    
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    console.log('Submitting order...');
-    
-    await page.evaluate((selector) => {
-      const button = document.querySelector(selector);
-      if (button) button.click();
-    }, SELECTORS.checkout.submitButton);
-    
-    await page.waitForFunction(
-      () => {
-        const bodyText = document.body.innerText;
-        return bodyText.includes('Thank You') || 
-               bodyText.includes('thank you') ||
-               bodyText.includes('Thank you') ||
-               document.querySelector('.success') !== null ||
-               document.querySelector('.order-complete') !== null;
-      },
-      { timeout: 15000 }
-    );
-    
-    console.log(' Order submitted successfully - Thank You page displayed');
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-  } catch (error) {
-    console.error(' Error during checkout:', error.message);
-    await page.screenshot({ path: 'debug-submit.png' });
-    throw error;
-  } finally {
-    await flow.endTimespan();
-    console.log('Timespan ended for checkout submission\n');
-  }
-
-  console.log('Taking final snapshot...');
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  await flow.snapshot({ stepName: '7. Order confirmation page' });
-  console.log(' Final snapshot captured\n');
-
-  console.log('Generate report');
+  // ── REPORT ──
+  console.log('📄 Generating report…');
   const report = await flow.generateReport();
   const reportPath = 'flow-report.html';
   fs.writeFileSync(reportPath, report);
-  console.log(` Report saved as ${reportPath}`);
-  
+  console.log(`  ✓ Report saved → ${reportPath}\n`);
+
   await browser.close();
-  console.log('\n Success');
+  console.log('🎉 All done!\n');
 }
 
-runAudit().catch(error => {
-  console.error('\n Failed');
-  console.error(error);
+// ─────────────────────────────────────────────
+runAudit().catch((err) => {
+  console.error('\n❌ Audit failed:', err);
   process.exit(1);
 });
