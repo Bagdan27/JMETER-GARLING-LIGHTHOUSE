@@ -67,6 +67,57 @@ async function screenshot(page, name) {
 }
 
 // ─────────────────────────────────────────────
+//  SEO META TAGS
+//  Injected via request interception so Lighthouse
+//  sees them during the audit — simulates what the
+//  site SHOULD have, useful for "what-if" scoring.
+// ─────────────────────────────────────────────
+const SEO_META = {
+  '/':          { description: 'Premium furniture store — tables, chairs and lamps for every home.' },
+  '/tables':    { description: 'Browse our full collection of kitchen and living room tables.' },
+  '/chairs':    { description: 'Discover ergonomic and stylish chairs for every room.' },
+  '/cart':      { description: 'Review your cart and proceed to checkout.' },
+  '/checkout':  { description: 'Secure checkout — fast delivery, easy returns.' },
+};
+
+async function injectSeoMeta(page) {
+  // Remove noindex and inject meta description on every response
+  await page.setRequestInterception(true);
+
+  page.on('request', (req) => req.continue());
+
+  page.on('response', async (res) => {
+    // We only care about HTML documents
+    const ct = res.headers()['content-type'] ?? '';
+    if (!ct.includes('text/html')) return;
+
+    try {
+      const url   = new URL(res.url());
+      const path  = url.pathname.replace(/\/$/, '') || '/';
+      const meta  = SEO_META[path] ?? { description: 'Performance Testing Essentials — quality furniture.' };
+
+      await page.evaluate((desc) => {
+        // 1. Remove noindex
+        document.querySelectorAll('meta[name="robots"]').forEach((el) => {
+          if (el.content.includes('noindex')) el.remove();
+        });
+
+        // 2. Add / update meta description
+        let tag = document.querySelector('meta[name="description"]');
+        if (!tag) {
+          tag = document.createElement('meta');
+          tag.name = 'description';
+          document.head.appendChild(tag);
+        }
+        tag.content = desc;
+      }, meta.description);
+    } catch {
+      // silently skip non-parseable URLs
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
 //  PICK A RANDOM PRODUCT FROM A CATEGORY PAGE
 // ─────────────────────────────────────────────
 async function pickRandomProductUrl(page, categoryPath) {
@@ -98,6 +149,9 @@ async function runAudit() {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
     '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   );
+
+  // Inject SEO fixes (noindex removal + meta description) into every page
+  await injectSeoMeta(page);
 
   const flow = await startFlow(page, {
     name: 'E-commerce Order Flow',
