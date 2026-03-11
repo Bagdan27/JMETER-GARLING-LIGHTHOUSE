@@ -214,14 +214,13 @@ async function runOnce(runIndex) {
   console.log(`✓ Saved: ${runReportFile}`);
 
   // Собираем метрики
-  // Собираем метрики
   const flowResult = await flow.createFlowResult();
   
-  // 👇 СОХРАНЯЕМ JSON ОТЧЕТ 👇
+  // Сохраняем индивидуальный JSON-отчёт прогона
   const jsonReportFile = `flow-report-run${runIndex}.json`;
   fs.writeFileSync(jsonReportFile, JSON.stringify(flowResult, null, 2));
-  console.log(`✓ Saved: ${jsonReportFile}`);
-  
+  console.log(`✓ Saved JSON: ${jsonReportFile}`);
+
   const metrics = flowResult.steps.map(step => {
     const a = step.lhr?.audits ?? {};
     return {
