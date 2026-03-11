@@ -214,7 +214,14 @@ async function runOnce(runIndex) {
   console.log(`✓ Saved: ${runReportFile}`);
 
   // Собираем метрики
+  // Собираем метрики
   const flowResult = await flow.createFlowResult();
+  
+  // 👇 СОХРАНЯЕМ JSON ОТЧЕТ 👇
+  const jsonReportFile = `flow-report-run${runIndex}.json`;
+  fs.writeFileSync(jsonReportFile, JSON.stringify(flowResult, null, 2));
+  console.log(`✓ Saved: ${jsonReportFile}`);
+  
   const metrics = flowResult.steps.map(step => {
     const a = step.lhr?.audits ?? {};
     return {
