@@ -2,7 +2,15 @@ import puppeteer from 'puppeteer';
 import { startFlow } from 'lighthouse';
 import fs from 'fs';
 
-const APP_URL = 'http://localhost';
+const APP_URL = process.env.APP_URL || 'http://localhost';
+
+// Jenkins: передай RUN_ID через переменную окружения или аргумент --run=NAME
+// Примеры:
+//   RUN_ID=run1 node flow-audit.mjs
+//   node flow-audit.mjs --run=run1
+const RUN_ID = process.env.RUN_ID ||
+  (process.argv.find(a => a.startsWith('--run=')) || '').split('=')[1] ||
+  `run${Date.now()}`;
 const VIEWPORT = { width: 1280, height: 800 };
 
 const SELECTORS = {
@@ -245,8 +253,9 @@ async function runAudit() {
     };
   });
 
-  fs.writeFileSync('flow-metrics.json', JSON.stringify(metrics, null, 2));
-  console.log('✓ flow-metrics.json saved\n');
+  const metricsFile = `flow-metrics-${RUN_ID}.json`;
+fs.writeFileSync(metricsFile, JSON.stringify(metrics, null, 2));
+console.log(`✓ ${metricsFile} saved`);
 
   const fmt = (v, unit, div = 1) =>
     v != null ? `${(v / div).toFixed(unit === 's' ? 2 : unit === 'ms' ? 0 : 4)} ${unit}` : '—';
