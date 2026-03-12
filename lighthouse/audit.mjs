@@ -53,7 +53,6 @@ const LH_CONFIG = {
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// ─── Один прогон ──────────────────────────────────────────────────────────────
 async function runOnce(runIndex) {
   console.log(`\n${'═'.repeat(60)}`);
   console.log(`  RUN ${runIndex} of ${TOTAL_RUNS}  →  ${APP_URL}`);
@@ -121,7 +120,7 @@ async function runOnce(runIndex) {
             !!document.querySelector('a[href*="/cart"]'),
       { timeout: 10000 }
     );
-    await wait(2500); // ждём накопления CLS
+    await wait(2500); 
   } finally {
     await flow.endTimespan();
     console.log('✓\n');
@@ -140,7 +139,7 @@ async function runOnce(runIndex) {
   );
   console.log('✓\n');
 
-  // 6. Checkout page (navigate с кликом — один шаг без дублей)
+  // 6. Checkout page 
   console.log('[6/8] Checkout page...');
   await flow.navigate(
     async () => {
@@ -196,7 +195,7 @@ async function runOnce(runIndex) {
       },
       { timeout: 15000 }
     );
-    await wait(3000); // ждём финальные layout shifts
+    await wait(3000); 
   } finally {
     await flow.endTimespan();
     console.log('✓\n');
@@ -207,16 +206,13 @@ async function runOnce(runIndex) {
   await flow.snapshot({ stepName: '8. Order confirmation' });
   console.log('✓\n');
 
-  // Сохраняем индивидуальный HTML-отчёт прогона
   const runReport = await flow.generateReport();
   const runReportFile = `flow-report-run${runIndex}.html`;
   fs.writeFileSync(runReportFile, runReport);
   console.log(`✓ Saved: ${runReportFile}`);
 
-  // Собираем метрики
   const flowResult = await flow.createFlowResult();
   
-  // Сохраняем индивидуальный JSON-отчёт прогона
   const jsonReportFile = `flow-report-run${runIndex}.json`;
   fs.writeFileSync(jsonReportFile, JSON.stringify(flowResult, null, 2));
   console.log(`✓ Saved JSON: ${jsonReportFile}`);
@@ -241,7 +237,6 @@ async function runOnce(runIndex) {
   return { runIndex, metrics, reportFile: runReportFile };
 }
 
-// ─── Сводный отчёт ────────────────────────────────────────────────────────────
 function printSummary(allRuns) {
   const fmt = (v, unit, div = 1) =>
     v != null ? `${(v / div).toFixed(unit === 's' ? 2 : unit === 'ms' ? 0 : 4)}${unit}` : '—';
@@ -278,7 +273,6 @@ function printSummary(allRuns) {
   console.log(`\n${'═'.repeat(70)}\n`);
 }
 
-// ─── Генерация сводного HTML (вкладки с iframe каждого прогона) ───────────────
 function generateSummaryHtml(allRuns) {
   const runTabs = allRuns.map((r, i) =>
     `<button class="tab${i === 0 ? ' active' : ''}" onclick="show(${i})"
@@ -331,7 +325,6 @@ function generateSummaryHtml(allRuns) {
 </html>`;
 }
 
-// ─── MAIN ─────────────────────────────────────────────────────────────────────
 async function main() {
   console.log(`\nLighthouse Flow Audit`);
   console.log(`APP_URL: ${APP_URL}`);
@@ -345,7 +338,6 @@ async function main() {
       allRuns.push(result);
     } catch (err) {
       console.error(`\n❌ Run ${i} failed: ${err.message}`);
-      // продолжаем следующие прогоны
     }
   }
 
@@ -354,12 +346,10 @@ async function main() {
     process.exit(1);
   }
 
-  // Сводный HTML со вкладками (это и есть flow-report.html для Jenkins)
   const summaryHtml = generateSummaryHtml(allRuns);
   fs.writeFileSync('flow-report.html', summaryHtml);
   console.log('\n✓ flow-report.html (summary with tabs) saved');
 
-  // Сводная таблица в консоль
   printSummary(allRuns);
 
   console.log('✅ Done');
